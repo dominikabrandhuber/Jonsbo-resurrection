@@ -75,6 +75,33 @@ func (m *Module) serve(w http.ResponseWriter, r *http.Request, d Displays) error
 		return module.ErrNotFound
 	}
 	p := strings.TrimPrefix(r.URL.Path, prefix)
+	if p == "/thermal-widget.png" && r.Method == http.MethodPost {
+		var o Overlay
+		if err := body(w, r, &o, 4096); err != nil {
+			return err
+		}
+		l := Layout{ID: "thermal-preview", Name: "Thermal preview", Width: 640, Height: 480, Background: Background{Color: "#000000", Opacity: 1}, Overlays: []Overlay{o}}
+		if o.Type != "thermal-orbit" {
+			return invalid("thermal orbit required")
+		}
+		if err := ValidateLayout(l); err != nil {
+			return err
+		}
+		var value *float64
+		m.mu.RLock()
+		for _, metric := range m.metrics {
+			if metric.ID == o.Metric {
+				value = metric.Value
+				break
+			}
+		}
+		m.mu.RUnlock()
+		out := image.NewRGBA(image.Rect(0, 0, o.W, o.H))
+		if err := m.drawThermal(r.Context(), out, o, value, time.Now(), -1); err != nil {
+			return err
+		}
+		return writePNG(w, out)
+	}
 	if p == "/ai-widget.png" && r.Method == http.MethodPost {
 		var o Overlay
 		if err := body(w, r, &o, 4096); err != nil {
@@ -141,6 +168,17 @@ func (m *Module) serve(w http.ResponseWriter, r *http.Request, d Displays) error
 	}
 	id := parts[1]
 	if parts[0] == "layouts" {
+		if len(parts) == 3 && parts[2] == "farewell.png" && r.Method == http.MethodGet {
+			ms, err := strconv.Atoi(r.URL.Query().Get("ms"))
+			if err != nil || ms < 0 || ms > 1500 {
+				return invalid("farewell time must be 0..1500ms")
+			}
+			im, err := m.FarewellFrame(r.Context(), id, time.Duration(ms)*time.Millisecond)
+			if err != nil {
+				return err
+			}
+			return writePNG(w, im)
+		}
 		if len(parts) == 3 && parts[2] == "preview.png" && r.Method == http.MethodGet {
 			im, e := m.Frame(r.Context(), id)
 			if e != nil {
@@ -168,10 +206,8 @@ func (m *Module) serve(w http.ResponseWriter, r *http.Request, d Displays) error
 			if _, ok := s.Layouts[id]; !ok && len(s.Layouts) >= maxLayouts {
 				return conflict("layout quota reached")
 			}
-			if l.Background.AssetID != "" {
-				if _, ok := s.Assets[l.Background.AssetID]; !ok {
-					return invalid("unknown background asset")
-				}
+			if err := validateLayoutAssets(l, s.Assets); err != nil {
+				return err
 			}
 			if previous, exists := s.Layouts[id]; exists && (previous.Width != l.Width || previous.Height != l.Height) {
 				for _, binding := range s.Bindings {
@@ -232,8 +268,10 @@ func (m *Module) serve(w http.ResponseWriter, r *http.Request, d Displays) error
 				return module.ErrNotFound
 			}
 			for _, l := range s.Layouts {
-				if l.Background.AssetID == id {
-					return conflict("asset is referenced by a saved layout")
+				for _, used := range layoutAssetIDs(l) {
+					if used == id {
+						return conflict("asset is referenced by a saved layout")
+					}
 				}
 			}
 			delete(s.Assets, id)
