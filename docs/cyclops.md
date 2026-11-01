@@ -18,7 +18,7 @@ Rim rings leave their centers transparent; mini graphs show two minutes with
 gaps where samples are missing. Text stays inside the visible circle, with black
 pixels beyond its edge. Missing readings remain `--`.
 
-AI widgets have **Circular activity + quota rings** and **Small provider status
+AI widgets have **Circular activity + quota rings** and **Small provider usage
 strip** content options. Both use the same provider status, session activity,
 quota selection and token counts as the existing rectangular AI widgets. Only
 presentation changes: short status labels, weekly and five-hour quota rings,
@@ -26,12 +26,21 @@ and compact token counts. Local Claude quota fallback remains labelled local.
 Existing provider connections and observers work as before; no additional
 hooks, sign-in or setup are required for the Cyclops.
 
+When connected, the small strip shows weekly quota used, falling back to the
+five-hour quota or weekly tokens when necessary. Local and partial readings
+remain labelled. Missing usage shows `USAGE --`; disconnected, stale and expired
+sign-in states stay visible instead of presenting cached numbers as live usage.
+
 Selecting a redesigned preset creates a new editable draft. Previously saved
 layouts keep their original composition; choose a new preset to use the redesign.
 
 The default hardware dashboard shows CPU/GPU temperatures. If a CPU sensor is
 unavailable, pick a load or memory preset. Existing sensor driver requirements
 still apply; the display driver itself does not require replacing a USB driver.
+For supported Ryzen CPUs (including the Ryzen 7 9700X), a missing PawnIO device
+means the separate signed sensor driver must be installed. Access denied means
+the controller needs administrator rights. Restart monitoring after installing
+the driver, and use elevated startup for temperature readings after sign-in.
 
 The cooler tested has no hardware serial. Its `RJK-...` identifier is derived
 from the Windows HID instance. Keep it on the same USB port to retain saved
