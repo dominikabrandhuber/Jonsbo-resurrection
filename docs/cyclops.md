@@ -18,6 +18,14 @@ Rim rings leave their centers transparent; mini graphs show two minutes with
 gaps where samples are missing. Text stays inside the visible circle, with black
 pixels beyond its edge. Missing readings remain `--`.
 
+The **Thermal orbit** widget adds large antialiased IBM Plex Sans numerals with a
+slashed zero, CPU temperature only, and a moving light ring. An optional
+three-expression mascot sheet supports blinking, winking and a bounded graceful
+exit animation. The bundled [Kuromi – Alive theme](../themes/kuromi-alive/README.md)
+includes portable artwork, an import script, and upgrade/restore instructions.
+Use a `125ms` frame interval for eight display frames per second; hardware
+sampling stays independent.
+
 AI widgets have **Circular activity + quota rings** and **Small provider usage
 strip** content options. Both use the same provider status, session activity,
 quota selection and token counts as the existing rectangular AI widgets. Only
